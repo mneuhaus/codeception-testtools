@@ -1,8 +1,9 @@
+
 var $ = require('jquery'),
     faker = require('faker/locale/en_US'),
     Vue = require('vue');
     Vue.config.devtools = false;
-    
+
 var App = new Vue({
 
     data: {
@@ -41,7 +42,7 @@ var App = new Vue({
           }
         }
 
-        $('textarea, input[type!="checkbox"][type!="file"][type!="submit"]').on('change', function(){
+        $(document.body).on('change', 'textarea, input[type!="checkbox"][type!="file"][type!="submit"]', function () {
           if (self.recording === true) {
             var name    = $(this).attr("name"),
                 value   = $(this).val();
@@ -52,7 +53,7 @@ var App = new Vue({
           }
         });
 
-        $('input[type="file"]').on('change', function(){
+        $(document.body).on('change', 'input[type="file"]', function () {
           if (self.recording === true) {
             var name    = $(this).attr("name"),
                 value   = 'absolutePathToFile';
@@ -63,7 +64,7 @@ var App = new Vue({
           }
         });
 
-        $('input[type="checkbox"]').on('change', function(){
+        $(document.body).on('change', 'input[type="checkbox"]', function () {
           if (self.recording === true) {
             var name    = $(this).attr("name");
             if (this.checked) {
@@ -80,7 +81,7 @@ var App = new Vue({
           }
         });
 
-        $('input[type="submit"],button,a').on('click', function(){
+         $(document.body).on('click', 'input[type="submit"],button,a', function () {
             if (self.recording === true) {
               var name    = $(this).attr("name") || $(this).text().trim();
               if (name === '') {
@@ -93,7 +94,7 @@ var App = new Vue({
             }
         });
 
-        $('select').on('change', function(){
+        $(document.body).on('change', 'select', function () {
           if (self.recording === true) {
             var name    = $(this).attr("name"),
                 value   = $(this).val();
@@ -127,13 +128,57 @@ document.addEventListener("mousedown", function(event){
     }
 }, true);
 
-chrome.extension.onRequest.addListener(function(request) {
+function getClickedElementSelector(skipClass) {
+  var selector = '';
+    if ($(clickedEl).attr('id')) {
+        selector = '#' + $(clickedEl).attr('id');
+    } else if ($(clickedEl).attr('name')) {
+        selector = '[name=' + $(clickedEl).attr('name') + ']';
+    } else if ($(clickedEl).attr('class')) {
+        selector = '.' + $(clickedEl).attr('class').replace(' ', '.');
+    } else {
+        alert('could not detect selector (id, class or name)');
+    }
+    return selector;
+}
 
+chrome.extension.onRequest.addListener(function(request) {
     var method = request.method || false;
+    var selector = '';
     if(method === "see") {
+        selector = getClickedElementSelector();
+        console.log($(clickedEl).attr('name'), $(clickedEl).val());
+        console.log($(clickedEl).is('textarea, input[type!="checkbox"][type!="file"][type!="submit"]'));
+        if ($(clickedEl).is('textarea, input[type!="checkbox"][type!="file"][type!="submit"]')) {
+            App.steps.push({
+              'method': 'seeInField',
+              'args': [$(clickedEl).attr('name'), $(clickedEl).val()]
+            });
+        } else if (selector !== '') {
+            App.steps.push({
+              'method': 'see',
+              'args': [request.text, selector]
+            });
+        } else {
+            App.steps.push({
+              'method': 'see',
+              'args': [request.text]
+            });
+        }
+    }
+    if(method === "seeElement") {
+        selector = getClickedElementSelector();
+        if (selector !== '') {
+            App.steps.push({
+              'method': 'seeElement',
+              'args': [selector]
+            });
+        }
+    }
+    if(method === "canSeeOptionIsSelected") {
         App.steps.push({
-          'method': 'see',
-          'args': [request.text]
+          'method': 'canSeeOptionIsSelected',
+          'args': [$(clickedEl).attr('name'), $(clickedEl).find('option:selected').text()]
         });
     }
     if(method === "click") {
@@ -153,10 +198,10 @@ chrome.extension.onRequest.addListener(function(request) {
         });
     }
     if(method === "seeCurrentURLEquals") {
-        App.steps.push({
-            'method': 'seeCurrentURLEquals',
-            'args': [window.location.pathname]
-        });
+      App.steps.push({
+          'method': 'seeCurrentURLEquals',
+          'args': [window.location.pathname]
+      });
     }
     if(method === "recording") {
         App.recording = request.value;
@@ -175,7 +220,7 @@ chrome.extension.onRequest.addListener(function(request) {
     if(method === "undo") {
         App.steps.pop();
     }
-    
+
     if(method === "fake") {
         var fakeData  = "";
 

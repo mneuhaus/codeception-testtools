@@ -6,6 +6,18 @@ function see(info, tab) {
       "text": info.selectionText
   });
 }
+function seeElement(info, tab) {
+  chrome.tabs.sendRequest(tab.id, {
+      "method": "seeElement",
+      "text": info.selectionText
+  });
+}
+function canSeeOptionIsSelected(info, tab) {
+  chrome.tabs.sendRequest(tab.id, {
+      "method": "canSeeOptionIsSelected",
+      "text": info.selectionText
+  });
+}
 
 function click(info, tab) {
   chrome.tabs.sendRequest(tab.id, {
@@ -52,8 +64,20 @@ function loadMenu() {
     chrome.contextMenus.create({
       "title": "See",
       "parentId": parent,
-      "contexts":["selection"],
+      "contexts":["all"],
       "onclick": see
+    });
+    chrome.contextMenus.create({
+      "title": "SeeElement",
+      "parentId": parent,
+      "contexts":["all"],
+      "onclick": seeElement
+    });
+    chrome.contextMenus.create({
+      "title": "CanSeeOptionIsSelected",
+      "parentId": parent,
+      "contexts":["all"],
+      "onclick": canSeeOptionIsSelected
     });
     chrome.contextMenus.create({
       "title": "Click",
